@@ -1,10 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
-import argparse
+# import argparse
+# import pandas as pd
 
 # Base URL for playbook pages
 BASE_URL = "https://www.madden-school.com/playbooks"
 
+
+# TODO: Add argparse functionality.
+# TODO: Export data to pandas for formatting.
 
 # Step 1: Function to get the team and side URLs
 def get_team_data(pageData):
@@ -15,22 +19,35 @@ def get_team_data(pageData):
     #print(soup)
 
     # Find the playbooks section
-    # playbooks_section = soup.find('div', class_='flex justify-center gap-x-1 flex-row flex-wrap mb-6')
+    # playbook_sections = soup.find('div', class_='flex justify-center gap-x-1 flex-row flex-wrap mb-6')
 
     # Look for a container that likely holds the team playbooks
-    playbooks_section = soup.find('div', class_='flex justify-center gap-x-1 flex-row flex-wrap mb-6')
-    # print(f"Playbooks section raw: {playbooks_section}")
+    playbook_sections = soup.find_all('div', class_='flex justify-center gap-x-1 flex-row flex-wrap mb-6')
+    
+    if not playbook_sections:
+        print(f"No playbook sections found.")
+        return None
+    
+    #print(f"Playbooks section raw: {playbook_sections}")
 
     
     teams = {}
-    if playbooks_section:
-        # Print the section to check what it contains
-        #print(f"Playbooks Section: {playbooks_section}")
+    playbooks = {}
 
+
+    for idx, section in enumerate(playbook_sections, start=1):
+        # You can give each section a name based on its position or based on specific text/attributes in the section
+        section_name = f"Playbook {idx}"
         
-        
-        # Look for all <a> tags inside the playbooks_section
-        a_tags = playbooks_section.find_all('a', href=True)
+        # Store the section in the dictionary, with each section as a key
+        playbooks[section_name] = get_formations_and_plays(section)
+
+    if playbook_sections:
+        # Print the section to check what it contains
+        #print(f"Playbooks Section: {playbook_sections}")
+
+        # Look for all <a> tags inside the playbook_sections
+        a_tags = playbook_sections.find_all('a', href=True)
         # print(f"Found {len(a_tags)} <a> tags: {a_tags}")
 
         # Loop through each <a> tag to get team names and URLs
@@ -53,15 +70,20 @@ def get_team_data(pageData):
     else:
         print("Playbooks section not found!")
 
-    #print(f"Printing teams: {teams}")
+    # print(f"Printing teams: {teams}")
     return teams
 
+
 # Step 2: Function to fetch formations and plays for a specific team and side
-def get_formations_and_plays(team_name, team_url):
+def get_formations_and_plays(team_name, team_url) -> dict:
     print(f"Fetching data for {team_name} from {team_url}")
 
     # Make GET request to the team-specific URL (offense/defense)
     response = requests.get(team_url)
+
+    if response.status_code != 200:
+        print(f"Error: Could not fetch the playbook.")
+        return None
     
     # Parse the page content
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -91,6 +113,7 @@ def get_formations_and_plays(team_name, team_url):
 
     return formations
 
+
 # Step 3: Main function to orchestrate the scraping process
 def main():
     # Step 1: Get all teams and their respective pages
@@ -112,6 +135,7 @@ def main():
 
     # Step 3: Output the final data (you can print, save, or process it further)
     print(all_team_data)
+
 
 # Run the script
 if __name__ == "__main__":
