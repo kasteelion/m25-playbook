@@ -32,16 +32,26 @@ def get_teams_playbook_page(base_url):
 
 
     teams = []
-    for link in team_links:
-        team_url = link.find_all('a', href=True)
+
+    # Iterate through each section (offensive, defensive, etc.)
+    for section in team_links:
+        # Find all <a> tags inside the current section (each link is a team link)
+        anchors = section.find_all('a', href=True)  # Use find_all to get all <a> tags with href
         
-        # Now, find the <span> that contains the team name, typically adjacent to the <a> tag
-        span = link.find_next('span')  # Find the next <span> tag after the <a> tag
-        if span:
-            team_name = span.text.strip()  # Get the team name from the span
+        for anchor in anchors:
+            # Get the URL from the href attribute of the <a> tag
+            team_url = anchor['href']
+            
+            # Now, find the <span> tag containing the team name, which should be near the <a> tag
+            span = anchor.find_next('span')  # Find the next <span> tag after the <a> tag
+            
+            if span:
+                team_name = span.text.strip()  # Get the team name from the <span> tag
+            else:
+                team_name = "Unknown Team Name"  # If no <span> tag is found
+            
+            # Append the (team_name, team_url) tuple to the teams list
             teams.append((team_name, team_url))
-        else:
-            print(f"Warning: No <span> tag found for team link: {link}")
     
     #print(f"List of teams {teams}")
     return teams
@@ -104,9 +114,12 @@ def main():
     teams = get_teams_playbook_page(base_url)
     #print(teams)
     
-    if teams is None:
-        print("Failed to retrieve the teams' playbooks.")
-        return
+    if teams:
+        print(f"Found {len(teams)} teams:")
+        for team_name, team_url in teams:
+            print(f"Team: {team_name}, URL: {team_url}")
+    else:
+        print("No teams found.")
     
     # Find the team the user requested and scrape its playbook
     team_name = args.team
@@ -119,7 +132,7 @@ def main():
     for team, team_url_in_list in teams:
         #print("made it in the loop!")
         if team_name.lower() in team.lower():  # Case-insensitive match
-            print("Made it in the if statement, line 122")
+            print("Made it in the if statement, line 128")
             team_url = get_team_playbook_url(base_url, team, side)
             print(f"Searching inside of {team_url}")
             break
