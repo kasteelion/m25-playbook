@@ -21,5 +21,6 @@ for a in soup.find_all('a'):
     amountOfSlashes -= 1
     
     if href and href.startswith('/playbooks/') and (amountOfSlashes == 6) and target_string in href:
-        print(f"URL is: {href}")
-        print(f"Amount of slashes found: {amountOfSlashes}" + "\n")
+       url_parts = href.split('/')
+       thingwewant = '/'.join(url_parts[4:])
+       print(f"URL is: {thingwewant}")
