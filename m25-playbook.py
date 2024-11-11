@@ -2,14 +2,42 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 
+# Send a GET request to the webpage
+# url = "https://www.madden-school.com/playbooks/"
+url = "https://www.madden-school.com/playbooks/"
+teamResponse = requests.get(url)
 
+soup = BeautifulSoup(teamResponse.content, 'html.parser')
+#print(f"Printing soup {soup}")
+
+target_string = "playbooks"
+exclude_strings = ["finder", "search"]
+
+
+# Find teams or playbooks
+for a in soup.find_all('a'):
+    # Getting all hrefs
+    href = a.get('href')
+
+    # Filtering for playbooks
+    if href and href.startswith('/playbooks/') and target_string in href:
+            
+        # Exclude anything that isn't a playbook
+        if any(exclude_str in href for exclude_str in exclude_strings):
+            continue  # Skip this iteration if an exclude string is found
+        
+        url_parts = href.split('/')
+        teamAndSide = '/'.join(url_parts[2:])
+        # print(f"URL is: {teamAndSide}")
+
+"""
 # Send a GET request to the webpage
 # url = "https://www.madden-school.com/playbooks/"
 url = "https://www.madden-school.com/playbooks/packers/defense/4-3/even-6-1/"
-response = requests.get(url)
+setResponse = requests.get(url)
 
 
-soup = BeautifulSoup(response.content, 'html.parser')
+soup = BeautifulSoup(setResponse.content, 'html.parser')
 #print(f"Printing soup {soup}")
 
 # Create an list for teams
@@ -28,3 +56,4 @@ for a in soup.find_all('a'):
        url_parts = href.split('/')
        thingwewant = ','.join(url_parts[4:])
        print(f"URL is: {thingwewant}")
+"""
