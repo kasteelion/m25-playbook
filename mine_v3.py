@@ -11,7 +11,6 @@ def parse_args():
 
 # Function to get the URL for the team-specific playbook page (offense/defense)
 def get_team_playbook_url(base_url, team, side) -> str:
-    print("Made it to get_team_playbook_url!")
     # Construct the team-specific URL based on side (offense/defense)
     return f'{base_url}{team}/{side}/'
 
@@ -57,7 +56,7 @@ def get_teams_playbook_page(base_url):
     return teams
 
 # Function to scrape formations and plays from a team-specific playbook page
-def scrape_playbook_page(team_url):
+def scrape_playbook_page(team_url) -> dict:
     response = requests.get(team_url)
     if response.status_code != 200:
         print(f"Error: Could not fetch the playbook page {team_url}.")
@@ -112,49 +111,53 @@ def main():
 
     # Get the list of teams and their respective playbook URLs
     teams = get_teams_playbook_page(base_url)
-    #print(teams)
-    
-    if teams:
-        print(f"Found {len(teams)} teams:")
-        for team_name, team_url in teams:
-            print(f"Team: {team_name}, URL: {team_url}")
-    else:
-        print("No teams found.")
+
+ 
+    # if teams:
+    #     print(f"Found {len(teams)} teams:")
+    #     # for team_name, team_url in teams:
+    #     #     print(f"Team: {team_name}, URL: {team_url}")
+    # else:
+    #     print("No teams found.")
     
     # Find the team the user requested and scrape its playbook
     team_name = args.team
     side = args.side
 
     
-
     # Look for the team URL
     team_url = None
     for team, team_url_in_list in teams:
-        #print("made it in the loop!")
         if team_name.lower() in team.lower():  # Case-insensitive match
-            print("Made it in the if statement, line 128")
             team_url = get_team_playbook_url(base_url, team, side)
             print(f"Searching inside of {team_url}")
             break
 
     if team_url is None:
-        print(f"Error: Could not find playbook for {team_name}.")
+        print(f"Error: Could not find playbook for the {team_name}.")
         return
 
-    print(f"Scraping {side} playbook for {team_name}...")
+
+    print(f"Scraping {side} playbook for the {team_name}...")
     
+
+    # Function to scrape formations and plays from a team-specific playbook page
     playbooks = scrape_playbook_page(team_url)
     
+    # Print playbooks for debugging purposes. This 
+    # print(playbooks)
+
     if playbooks:
         # Print the playbooks and their respective formations and plays
         for playbook_name, formations in playbooks.items():
-            print(f"\n{playbook_name} Playbook:")
+            print(f"\n{playbook_name}:")
             for formation_name, data in formations.items():
                 print(f"  Formation: {formation_name} (URL: {data['url']})")
                 print("  Plays:")
                 for play in data['plays']:
                     print(f"    - {play}")
             print()
+
 
 if __name__ == "__main__":
     main()
