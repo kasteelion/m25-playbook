@@ -4,8 +4,8 @@ import pandas as pd
 
 # Send a GET request to the webpage
 # url = "https://www.madden-school.com/playbooks/"
-url = "https://www.madden-school.com/playbooks/"
-teamResponse = requests.get(url)
+url1 = "https://www.madden-school.com/playbooks/"
+teamResponse = requests.get(url1)
 
 soup = BeautifulSoup(teamResponse.content, 'html.parser')
 #print(f"Printing soup {soup}")
@@ -29,7 +29,25 @@ for a in soup.find_all('a'):
         url_parts = href.split('/')
         teamAndSide = '/'.join(url_parts[2:])
         # print(f"URL is: {teamAndSide}")
+        
+url2 = "https://www.madden-school.com/playbooks/{teamandside}"
+teamResponse = requests.get(url2)
+for a in soup.find_all('a'):
+    # Getting all hrefs
+    href = a.get('href')
 
+    # Filtering for playbooks
+    if href and href.startswith('/playbooks/') and target_string in href:
+            
+        # Exclude anything that isn't a playbook
+        if any(exclude_str in href for exclude_str in exclude_strings):
+            continue  # Skip this iteration if an exclude string is found
+        
+        url_parts2 = href.split('/')
+        formations = '/'.join(url_parts2[3:])
+        # print(f"URL is: {teamAndSide}")
+        print(url_parts2)
+        
 """
 # Send a GET request to the webpage
 # url = "https://www.madden-school.com/playbooks/"
