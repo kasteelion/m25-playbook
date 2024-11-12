@@ -1,6 +1,7 @@
 import argparse
 import requests
 from bs4 import BeautifulSoup
+import csv
 
 # Function to parse command-line arguments
 def parse_args():
@@ -99,6 +100,13 @@ def extract_playbook_data(section):
 
     return formations
 
+# Function to write playbook data to CSV
+def write_to_csv(playbook_data, csv_file):
+    with open(csv_file, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        for data in playbook_data:
+            writer.writerow(data)
+
 # Main function to drive the scraping
 def main():
     args = parse_args()
@@ -110,6 +118,14 @@ def main():
     if not teams:
         print("No teams found.")
         return
+    
+    # Define CSV file
+    csv_file = 'playbooks2.csv'
+    
+    # Add headers if CSV is empty (only once)
+    with open(csv_file, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Team', 'Side', 'Playbook', 'Formation', 'Play Name'])
     
     # If a specific team is provided, search for it; otherwise, scrape all teams
     if args.team:
@@ -128,16 +144,20 @@ def main():
             print(f"Error: Could not find playbook for {team_name}.")
             return
         
-        # Scrape and display playbooks for the selected team
+        # Scrape and collect playbooks for the selected team
+        playbook_data = []
         playbooks = scrape_playbook_page(team_url)
         
         if playbooks:
             for playbook_name, formations in playbooks.items():
-                print(f"\n{playbook_name}:")
                 for formation_name, data in formations.items():
-                    print(f"  Formation: {formation_name} (URL: {data['url']})")
                     for play in data['plays']:
-                        print(f"    - {play}")
+                        # Add a row for each play within the formation
+                        playbook_data.append([team_name, side, playbook_name, formation_name, play])
+            
+            # Write to CSV
+            write_to_csv(playbook_data, csv_file)
+            print(f"Data for {team_name} has been written to {csv_file}.")
         else:
             print("No playbooks found.")
     else:
@@ -150,15 +170,18 @@ def main():
                 playbooks = scrape_playbook_page(team_url_with_side)
                 
                 if playbooks:
+                    playbook_data = []
                     for playbook_name, formations in playbooks.items():
-                        print(f"\n{playbook_name}:")
                         for formation_name, data in formations.items():
-                            print(f"  Formation: {formation_name} (URL: {data['url']})")
                             for play in data['plays']:
-                                print(f"    - {play}")
+                                # Add a row for each play within the formation
+                                playbook_data.append([team_name, side, playbook_name, formation_name, play])
+                    
+                    # Write to CSV
+                    write_to_csv(playbook_data, csv_file)
+                    print(f"Data for {team_name} ({side}) has been written to {csv_file}.")
                 else:
                     print(f"No playbooks found for {side} of {team_name}.")
-                    
 
 if __name__ == "__main__":
     main()
