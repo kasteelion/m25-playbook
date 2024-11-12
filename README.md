@@ -1,6 +1,6 @@
 # Madden 25 Playbook Finder
 ## Requirements
-- >= Python3 3.11
+- Python >= 3.11
 - requests
 - beautifulsoup4
 
