@@ -9,12 +9,17 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Scrape playbook data for a specific team and side (offense/defense).")
     
     # Use '--team' flag to specify the team
-    parser.add_argument('--team', required=True, help='The team name (e.g., "49ers", "Ravens")')
+    parser.add_argument('--team', help='The team name (e.g., "49ers", "Ravens")')
 
     # Use '--side' flag to specify offense/defense, with 'offense' as the default
     parser.add_argument('--side', choices=['offense', 'defense'], default='offense', help='The side to scrape (offense or defense). Default is offense.')
     
+    parser.add_argument("--exportall", action="store_true", help="Export data for all teams")
+
     return parser.parse_args()
+
+
+
 
 # Function to get the URL for the team-specific playbook page (offense/defense)
 def get_team_playbook_url(base_url, team, side) -> str:
@@ -150,6 +155,20 @@ def scrape_plays_for_set(set_url):
     return play_names
 
 
+# Function to scrape playbook data for all teams
+def scrape_all_teams(base_url):
+    teams = get_teams_playbook_page(base_url)
+    all_playbook_data = []
+    
+    for team_name in teams:
+        print(f"Scraping data for {team_name}...")
+        for side in ["offense", "defense"]:
+            playbook_data = scrape_playbook_page(team_name, base_url, side)
+            all_playbook_data.extend(playbook_data)
+    
+    return all_playbook_data
+
+
 # Function to write the data to a CSV file
 def write_to_csv(data, filename):
     with open(filename, mode='w', newline='') as file:
@@ -168,6 +187,24 @@ def main():
     # Get the list of teams from the main playbook page
     teams = get_teams_playbook_page(base_url)
 
+
+
+    if args.exportall:
+        print("Exporting data for all teams...")
+        all_playbook_data = scrape_all_teams(base_url)
+        write_to_csv(all_playbook_data, 'all_playbook_data.csv')
+        print("All playbook data has been written to 'all_playbook_data.csv'.")
+    else:
+        # Get the team-specific playbook data
+        playbook_data = scrape_playbook_page(args.team, base_url, args.side)
+        if playbook_data:
+            write_to_csv(playbook_data, 'playbook_data.csv')
+            print(f"Playbook data for {args.team} ({args.side}) has been written to 'playbook_data.csv'.")
+        else:
+            print(f"No playbook data found for {args.team} ({args.side}).")
+
+
+    
     # Look for the team specified in the arguments
     team_url = None
     for team_name in teams:
@@ -189,7 +226,7 @@ def main():
             print(f"Playbook data for {args.team} ({args.side}) has been written to 'playbook_data.csv'.")
         else:
             print(f"No playbook data found for {args.team} ({args.side}).")
-
+    
 
 
 
