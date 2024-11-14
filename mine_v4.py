@@ -2,6 +2,9 @@ import argparse
 import requests
 from bs4 import BeautifulSoup
 import csv
+import os
+import hashlib
+import concurrent.futures
 
 
 # Function to parse command-line arguments
@@ -19,6 +22,48 @@ def parse_args():
     return parser.parse_args()
 
 
+# Function to check if a cached HTML file exists
+def get_cached_html(url):
+    # Create a hash of the URL to name the file
+    url_hash = hashlib.md5(url.encode()).hexdigest()
+    file_path = os.path.join("reqs", f"{url_hash}.html")
+    
+    # If the file exists, read it
+    if os.path.exists(file_path):
+        print(f"Using cached HTML for {url}")
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    return None
+
+
+# Function to save the HTML response to a local file
+def save_html(url, html_content):
+    # Create a hash of the URL to name the file
+    url_hash = hashlib.md5(url.encode()).hexdigest()
+    os.makedirs("reqs", exist_ok=True)  # Create 'reqs' directory if not exists
+    file_path = os.path.join("reqs", f"{url_hash}.html")
+    
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(html_content)
+    print(f"Saved HTML content for {url} to {file_path}")
+
+
+# Function to fetch HTML content from a URL (either from cache or network)
+def fetch_html(url):
+    # Try to get the cached HTML first
+    cached_html = get_cached_html(url)
+    if cached_html:
+        return cached_html
+    
+    # If not cached, make a request to fetch the content
+    response = requests.get(url)
+    if response.status_code == 200:
+        save_html(url, response.text)  # Cache the response
+        return response.text
+    else:
+        print(f"Error fetching {url}: {response.status_code}")
+        
+
 
 
 # Function to get the URL for the team-specific playbook page (offense/defense)
@@ -30,12 +75,12 @@ def get_team_playbook_url(base_url, team, side) -> str:
 
 # Function to get all available teams from the main playbook page
 def get_teams_playbook_page(base_url):
-    response = requests.get(base_url)
-    if response.status_code != 200:
-        print(f"Error: Could not fetch the main playbook page {base_url}.")
-        return []
+    html = fetch_html(base_url)
+    if not html:
+        print("Error: Could not fetch the playbook page.")
+        return {}
 
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = BeautifulSoup(html, 'html.parser')
 
     # Find all team links (team names are inside <a> tags with no specific class but are enclosed in spans)
     team_links = soup.find_all('a', href=True)
@@ -46,7 +91,7 @@ def get_teams_playbook_page(base_url):
         team_name = link.find('span')
         if team_name:
             team_name = team_name.text.strip()
-            print(repr(team_name))
+            #print(repr(team_name))
             teams.append(team_name)
 
     return teams
@@ -54,13 +99,14 @@ def get_teams_playbook_page(base_url):
 
 def scrape_playbook_page(team_name, base_url, side):
     team_url = get_team_playbook_url(base_url, team_name, side)
-    response = requests.get(team_url)
     
-    if response.status_code != 200:
-        print(f"Error: Could not fetch the playbook page {team_url}.")
+    
+    html = fetch_html(team_url)
+    if not html:
+        print(f"Error: Could not fetch playbook page {team_url}.")
         return []
 
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = BeautifulSoup(html, 'html.parser')
 
     # Find all sections that represent playbooks (like offensive/defensive sections)
     playbook_sections = soup.find_all('div', class_='text-center')
@@ -104,7 +150,7 @@ def scrape_playbook_page(team_name, base_url, side):
                 set_name = set_span.find('span', class_="py-2 block font-bold text-sm text-white hover:text-base transition-all duration-200").text.strip()
                 #set_name = set_name.replace("\n", "").replace("\r", "")
                 
-                print(repr(set_name))
+                #print(repr(set_name))
                 
                 set_url = set_span.find('a')['href'] if set_span.find('a') else None
 
