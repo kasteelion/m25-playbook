@@ -2,11 +2,11 @@
 ## Requirements
 - Python >= 3.11
 - requests
-- beautifulsoup4
+- bs4
 
 ## Installation
 ```plaintext
-pip install requests beautifulsoup4
+pip install requests bs4
 ```
 
 ## Basic Usage

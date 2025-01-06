@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import csv
 import os
 import hashlib
-import concurrent.futures
+import sys
 
 
 # Function to parse command-line arguments
@@ -255,40 +255,31 @@ def main():
         write_to_csv(all_playbook_data, 'all_playbook_data.csv')
         print("All playbook data has been written to 'all_playbook_data.csv'.")
     else:
-        # Get the team-specific playbook data
-        playbook_data = scrape_playbook_page(args.team, base_url, args.side)
-        if playbook_data:
-            write_to_csv(playbook_data, 'playbook_data.csv')
-            print(f"Playbook data for {args.team} ({args.side}) has been written to 'playbook_data.csv'.")
-        else:
-            print(f"No playbook data found for {args.team} ({args.side}).")
+        if not args.team:
+            print("Error: You must specify a team name unless using '--exportall'.")
+            sys.exit(1)  # Exit the program with an error code
 
-
-    
-    # Look for the team specified in the arguments
-    team_url = None
-    for team_name in teams:
-        if args.team.lower() in team_name.lower():  # Case-insensitive match
-            team_url = get_team_playbook_url(base_url, team_name, args.side)
-            print(f"Scraping {args.side} playbook for {team_name} at {team_url}")
-            break
-    
-    if not team_url:
-        print(f"Error: Could not find playbook for team '{args.team}'")
-    else:
-        # Scrape the playbook data for the selected team and side
-        playbook_data = scrape_playbook_page(args.team, base_url, args.side)
+        # Look for the team specified in the arguments
+        team_url = None
+        for team_name in teams:
+            if args.team.lower() in team_name.lower():  # Case-insensitive match
+                team_url = get_team_playbook_url(base_url, team_name, args.side)
+                print(f"Scraping {args.side} playbook for {team_name} at {team_url}")
+                break
         
-
-        # Write the data to a CSV file
-        if playbook_data:
-            write_to_csv(playbook_data, 'playbook_data.csv')
-            print(f"Playbook data for {args.team} ({args.side}) has been written to 'playbook_data.csv'.")
+        if not team_url:
+            print(f"Error: Could not find playbook for team '{args.team}'")
         else:
-            print(f"No playbook data found for {args.team} ({args.side}).")
+            # Scrape the playbook data for the selected team and side
+            playbook_data = scrape_playbook_page(args.team, base_url, args.side)
+
+            # Write the data to a CSV file
+            if playbook_data:
+                write_to_csv(playbook_data, f'{args.team}-{args.side}.csv')
+                print(f"Playbook data for {args.team} ({args.side}) has been written to '{args.team}-{args.side}.csv'.")
+            else:
+                print(f"No playbook data found for {args.team} ({args.side}).")
+
     
-
-
-
 if __name__ == "__main__":
     main()
