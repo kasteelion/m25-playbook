@@ -91,6 +91,7 @@ def get_teams_playbook_page(base_url):
         team_name = link.find('span')
         if team_name:
             team_name = team_name.text.strip()
+            team_name = team_name.replace(" ", "-")
             #print(repr(team_name))
             teams.append(team_name)
 
