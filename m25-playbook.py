@@ -7,6 +7,9 @@ import hashlib
 import sys
 
 
+import scraper
+
+
 # Function to parse command-line arguments
 def parse_args():
     parser = argparse.ArgumentParser(description="Scrape playbook data for a specific team and side (offense/defense).")
@@ -22,51 +25,6 @@ def parse_args():
     return parser.parse_args()
 
 
-# Function to check if a cached HTML file exists
-def get_cached_html(url):
-    # Create a hash of the URL to name the file
-    url_hash = hashlib.md5(url.encode()).hexdigest()
-    file_path = os.path.join("reqs", f"{url_hash}.html")
-
-    print(f"Hashing URL: {url} -> MD5 Hash: {url_hash}")
-    
-    # If the file exists, read it
-    if os.path.exists(file_path):
-        print(f"Using cached HTML for {url}")
-        with open(file_path, 'r', encoding='utf-8') as file:
-            return file.read()
-    return None
-
-
-# Function to save the HTML response to a local file
-def save_html(url, html_content):
-    # Create a hash of the URL to name the file
-    url_hash = hashlib.md5(url.encode()).hexdigest()
-    print(f"Data not hashed!!\nHashing URL: {url} -> MD5 Hash: {url_hash}\n")
-    os.makedirs("reqs", exist_ok=True)  # Create 'reqs' directory if not exists
-    file_path = os.path.join("reqs", f"{url_hash}.html")
-    
-    with open(file_path, 'w', encoding='utf-8') as file:
-        file.write(html_content)
-    print(f"Saved HTML content for {url} to {file_path}")
-
-
-# Function to fetch HTML content from a URL (either from cache or network)
-def fetch_html(url):
-    # Try to get the cached HTML first
-    cached_html = get_cached_html(url)
-    if cached_html:
-        return cached_html
-    
-    # If not cached, make a request to fetch the content
-    response = requests.get(url)
-    if response.status_code == 200:
-        save_html(url, response.text)  # Cache the response
-        return response.text
-    else:
-        print(f"Error fetching {url}: {response.status_code}")
-        
-
 
 
 # Function to get the URL for the team-specific playbook page (offense/defense)
@@ -78,7 +36,7 @@ def get_team_playbook_url(base_url, team, side) -> str:
 
 # Function to get all available teams from the main playbook page
 def get_teams_playbook_page(base_url):
-    html = fetch_html(base_url)
+    html = scraper.fetch_html(base_url)
     if not html:
         print("Error: Could not fetch the playbook page.")
         return {}
@@ -112,7 +70,7 @@ def scrape_playbook_page(team_name, base_url, side):
     team_url = get_team_playbook_url(base_url, team_name, side)
     
     
-    html = fetch_html(team_url)
+    html = scraper.fetch_html(team_url)
     if not html:
         print(f"Error: Could not fetch playbook page {team_url}.")
         return []
@@ -130,7 +88,7 @@ def scrape_playbook_page(team_name, base_url, side):
         # Extract formations (these should be inside <a> tags)
         formation_links = section.find_all('a', class_='text-xl font-bold text-gray-800')
         
-        print(f"Found {len(formation_links)} formation links in section")
+        # print(f"Found {len(formation_links)} formation links in section")
 
         for formation_link in formation_links:
             formation_name = formation_link.text.strip()
@@ -138,10 +96,10 @@ def scrape_playbook_page(team_name, base_url, side):
 
             # Construct full URL for the formation page
             formation_full_url = "https://www.madden-school.com" + formation_url
-            print(f"Formation: {formation_name}, URL: {formation_full_url}")
+            # print(f"Formation: {formation_name}, URL: {formation_full_url}")
 
             # Scrape the sets for this formation (go to the formation page)
-            formation_html = fetch_html(formation_full_url)
+            formation_html = scraper.fetch_html(formation_full_url)
             if not formation_html:
                 print(f"Error: Could not fetch the formation page {formation_full_url}.")
                 continue
@@ -154,7 +112,7 @@ def scrape_playbook_page(team_name, base_url, side):
             
 
 
-            print(f"Found {len(set_spans)} set spans in formation")
+            # print(f"Found {len(set_spans)} set spans in formation")
 
             # Loop through each set span to find the set names and URLs
             for set_span in set_spans:
@@ -189,7 +147,7 @@ def scrape_playbook_page(team_name, base_url, side):
 
 def scrape_plays_for_set(set_url):
     """Function to scrape plays for a specific set given its URL."""
-    response = fetch_html(set_url)
+    response = scraper.fetch_html(set_url)
     if not response:
         print(f"Error: Could not fetch set page {set_url}.")
         return []
@@ -217,8 +175,7 @@ def scrape_all_teams(base_url):
     teams = get_teams_playbook_page(base_url)
     all_playbook_data = []
 
-    scraped = False
-    
+
     for team_name in teams:
         print(f"Scraping data for {team_name}...")
         for side in ["offense", "defense"]:
@@ -257,7 +214,7 @@ def main():
     else:
         if not args.team:
             print("Error: You must specify a team name unless using '--exportall'.")
-            sys.exit(1)  # Exit the program with an error code
+            sys.exit(1)
 
         # Look for the team specified in the arguments
         team_url = None
