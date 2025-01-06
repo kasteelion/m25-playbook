@@ -27,6 +27,8 @@ def get_cached_html(url):
     # Create a hash of the URL to name the file
     url_hash = hashlib.md5(url.encode()).hexdigest()
     file_path = os.path.join("reqs", f"{url_hash}.html")
+
+    print(f"Hashing URL: {url} -> MD5 Hash: {url_hash}")
     
     # If the file exists, read it
     if os.path.exists(file_path):
@@ -40,6 +42,7 @@ def get_cached_html(url):
 def save_html(url, html_content):
     # Create a hash of the URL to name the file
     url_hash = hashlib.md5(url.encode()).hexdigest()
+    print(f"Data not hashed!!\nHashing URL: {url} -> MD5 Hash: {url_hash}\n")
     os.makedirs("reqs", exist_ok=True)  # Create 'reqs' directory if not exists
     file_path = os.path.join("reqs", f"{url_hash}.html")
     
@@ -86,14 +89,21 @@ def get_teams_playbook_page(base_url):
     team_links = soup.find_all('a', href=True)
 
     teams = []
+    seen_teams = set()  # Use a set to track unique team names
+
     for link in team_links:
         # Extract the team name (assuming the team name is in the span element)
         team_name = link.find('span')
         if team_name:
             team_name = team_name.text.strip()
             team_name = team_name.replace(" ", "-")
-            #print(repr(team_name))
-            teams.append(team_name)
+
+            if team_name in seen_teams:
+                print(f"Duplicate found: {team_name}")
+            else:
+                print(f"New team found: {team_name}")
+                seen_teams.add(team_name)  # Add the team name to the set
+                teams.append(team_name)   # Append the team name to the list
 
     return teams
 
@@ -131,12 +141,12 @@ def scrape_playbook_page(team_name, base_url, side):
             print(f"Formation: {formation_name}, URL: {formation_full_url}")
 
             # Scrape the sets for this formation (go to the formation page)
-            formation_response = requests.get(formation_full_url)
-            if formation_response.status_code != 200:
+            formation_html = fetch_html(formation_full_url)
+            if not formation_html:
                 print(f"Error: Could not fetch the formation page {formation_full_url}.")
                 continue
 
-            formation_soup = BeautifulSoup(formation_response.text, 'html.parser')
+            formation_soup = BeautifulSoup(formation_html, 'html.parser')
             
             # Now look for set links (sets are inside specific divs like the ones you've seen)
             set_spans = formation_soup.find_all('div', class_='flex flex-wrap justify-center -mx-2')
@@ -179,12 +189,12 @@ def scrape_playbook_page(team_name, base_url, side):
 
 def scrape_plays_for_set(set_url):
     """Function to scrape plays for a specific set given its URL."""
-    response = requests.get(set_url)
-    if response.status_code != 200:
+    response = fetch_html(set_url)
+    if not response:
         print(f"Error: Could not fetch set page {set_url}.")
         return []
 
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = BeautifulSoup(response, 'html.parser')
 
     # Find play names by looking for divs that hold play names
     play_divs = soup.find_all('div', class_='m-1.5')
@@ -206,11 +216,14 @@ def scrape_plays_for_set(set_url):
 def scrape_all_teams(base_url):
     teams = get_teams_playbook_page(base_url)
     all_playbook_data = []
+
+    scraped = False
     
     for team_name in teams:
         print(f"Scraping data for {team_name}...")
         for side in ["offense", "defense"]:
             playbook_data = scrape_playbook_page(team_name, base_url, side)
+
             all_playbook_data.extend(playbook_data)
     
     return all_playbook_data

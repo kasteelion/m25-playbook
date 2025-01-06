@@ -13,3 +13,6 @@ pip install requests beautifulsoup4
 `python3 m25-playbook.py --team 49ers --side defense`
 
 This will pull the 49ers defensive plays from [Madden School](https://www.madden-school.com/playbooks/) and will return the information found to the terminal.
+
+## Exporting All Information
+`python3 m25-playbook.py --exportall`
